@@ -1,0 +1,11 @@
+[Unit]
+Description=OCPP Car Charger Service
+
+[Service]
+#Environment="RUST_LOG=trace"
+Restart=always
+RestartSec=3
+ExecStart=/usr/bin/ocpp-csms
+
+[Install]
+WantedBy=multi-user.target

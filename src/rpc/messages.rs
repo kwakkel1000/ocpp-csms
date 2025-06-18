@@ -4,6 +4,11 @@ use serde_json::Value;
 
 use crate::rpc::enums::{OcppActionEnum, OcppPayload};
 
+use super::enums::{
+    BootNotificationKind, HeartbeatKind, MeterValuesKind, RemoteStartTransactionKind,
+    RemoteStopTransactionKind, StartTransactionKind, StatusNotificationKind, StopTransactionKind,
+};
+
 type OcppMessageTypeId = usize;
 type OcppMessageId = String;
 type OcppErrorCode = String;
@@ -26,18 +31,55 @@ impl TryFrom<OcppMessageType> for OcppCall {
     fn try_from(msg: OcppMessageType) -> Result<Self, Self::Error> {
         match msg {
             OcppMessageType::Call(message_type_id, message_id, action, payload) => {
-                let action = if let Ok(o) = OcppActionEnum::from_str(&action) {
-                    o
-                } else {
+                let Ok(action) = OcppActionEnum::from_str(&action) else {
                     return Err("failed");
                 };
-                let payload: OcppPayload =
-                    if let Ok(p) = serde_json::from_value::<OcppPayload>(payload) {
-                        p
-                    } else {
-                        return Err("failed");
-                    };
-                Ok(OcppCall {
+                let payload = match action {
+                    OcppActionEnum::BootNotification => OcppPayload::BootNotification(
+                        serde_json::from_value::<BootNotificationKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::ClearCache => todo!(),
+                    OcppActionEnum::Heartbeat => OcppPayload::Heartbeat(
+                        serde_json::from_value::<HeartbeatKind>(payload).map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::MeterValues => OcppPayload::MeterValues(
+                        serde_json::from_value::<MeterValuesKind>(payload).map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::RemoteStartTransaction => OcppPayload::RemoteStartTransaction(
+                        serde_json::from_value::<RemoteStartTransactionKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::RemoteStopTransaction => OcppPayload::RemoteStopTransaction(
+                        serde_json::from_value::<RemoteStopTransactionKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::StartTransaction => OcppPayload::StartTransaction(
+                        serde_json::from_value::<StartTransactionKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::StopTransaction => OcppPayload::StopTransaction(
+                        serde_json::from_value::<StopTransactionKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    OcppActionEnum::StatusNotification => OcppPayload::StatusNotification(
+                        serde_json::from_value::<StatusNotificationKind>(payload)
+                            .map_err(|_| "failed")?,
+                    ),
+                    _ => todo!(),
+                };
+                /*let payload = if let Ok(p) = payload {
+                    OcppPayload(p)
+                } else {
+                    return Err("failed");
+                };*/
+                /*let payload: OcppPayload =
+                if let Ok(p) = serde_json::from_value::<OcppPayload>(payload) {
+                    p
+                } else {
+                    return Err("failed");
+                };*/
+                Ok(Self {
                     message_type_id,
                     message_id,
                     action,
@@ -66,7 +108,7 @@ impl serde::Serialize for OcppCall {
 
 #[derive(serde::Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
-/// CallResult: [<MessageTypeId>, "<MessageId>", {<Payload>}]
+/// `CallResult`: [<MessageTypeId>, "<MessageId>", {<Payload>}]
 pub struct OcppCallResult {
     pub message_type_id: OcppMessageTypeId,
     pub message_id: OcppMessageId,
@@ -85,7 +127,7 @@ impl TryFrom<OcppMessageType> for OcppCallResult {
                     } else {
                         return Err("failed");
                     };
-                Ok(OcppCallResult {
+                Ok(Self {
                     message_type_id,
                     message_id,
                     payload,
@@ -105,9 +147,9 @@ impl serde::Serialize for OcppCallResult {
     }
 }
 
-#[derive(serde::Deserialize, Debug, Clone, PartialEq)]
+#[derive(serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-/// CallError: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
+/// `CallError`: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
 pub struct OcppCallError {
     pub message_type_id: OcppMessageTypeId,
     pub message_id: OcppMessageId,
@@ -127,7 +169,7 @@ impl TryFrom<OcppMessageType> for OcppCallError {
                 error_code,
                 error_description,
                 error_details,
-            ) => Ok(OcppCallError {
+            ) => Ok(Self {
                 message_type_id,
                 message_id,
                 error_code,
@@ -155,12 +197,12 @@ impl serde::Serialize for OcppCallError {
     }
 }
 
-/// A Payload consist of either a Call, a CallResult or a CallError
+/// A Payload consist of either a Call, a `CallResult` or a `CallError`
 ///
 /// Call: [<MessageTypeId>, "<MessageId>", "<Action>", {<Payload>}]
-/// CallResult: [<MessageTypeId>, "<MessageId>", {<Payload>}]
-/// CallError: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq)]
+/// `CallResult`: [<MessageTypeId>, "<MessageId>", {<Payload>}]
+/// `CallError`: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum OcppMessageType {
     /// OCPP Call

@@ -1,13 +1,15 @@
 use crate::rpc::messages::OcppCall;
 
 impl OcppCall {
+    #[allow(unused)]
     pub fn validate(&self) -> Result<(), &str> {
         self.message_type_id_test()?;
         Ok(())
     }
 
-    /// message_type_id should be 2 if it's a Call
-    fn message_type_id_test(&self) -> Result<(), &'static str> {
+    /// `message_type_id` should be 2 if it's a Call
+    #[allow(unused)]
+    const fn message_type_id_test(&self) -> Result<(), &'static str> {
         match self.message_type_id {
             2 => Ok(()),
             _ => Err("\"message_type_id\" should be 2 if it's a Call"),

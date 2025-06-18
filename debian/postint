@@ -1,0 +1,6 @@
+#!/bin/sh
+
+#DEBHELPER#
+
+deb-systemd-invoke restart procps.service
+

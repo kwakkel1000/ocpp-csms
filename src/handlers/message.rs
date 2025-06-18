@@ -1,51 +1,127 @@
 use axum::extract::ws::Message;
-use tracing::log::warn;
+//use tracing::log::warn;
 
 use crate::authorization::authorize::handle_authorize;
+use crate::handlers::workflows::{
+    handle_heartbeat, handle_meter_values, handle_remote_start_transaction,
+    handle_remote_stop_transaction, handle_start_transaction, handle_status_notification,
+    handle_stop_transaction,
+};
+//use crate::authorization::authorize::handle_authorize;
+//use crate::handlers::response::handle_response;
 use crate::provisioning::bootnotification::handle_bootnotification;
-use crate::rpc::enums::{OcppActionEnum, OcppPayload};
-use crate::rpc::errors::RpcErrorCodes;
-use crate::rpc::messages::{OcppCall, OcppCallError, OcppCallResult};
-use crate::security::set_variables::handle_set_variables;
-use crate::security::trigger_message::handle_trigger_message;
+use crate::rpc::enums::OcppPayload;
+//use crate::rpc::enums::{OcppActionEnum, OcppPayload};
+//use crate::rpc::errors::RpcErrorCodes;
+//use crate::rpc::messages::{OcppCall, OcppCallError, OcppCallResult};
+use crate::rpc::messages::{OcppCall, OcppCallResult};
+//use crate::security::set_variables::handle_set_variables;
+//use crate::security::trigger_message::handle_trigger_message;
 use crate::{handlers::error::handle_error, rpc::messages::OcppMessageType};
-use crate::handlers::response::handle_response;
 
-pub async fn parse(msg: Message) {
+pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, ()> {
     // Skip any non-Text messages...
 
-
     // serialize or die
-    let ocpp_message_type: OcppMessageType = match serde_json::from_str(msg.into_text().unwrap().as_str()) {
-        Ok(o) => o,
-        Err(_) => {
-            handle_error(Message::Text("failed to parse call".to_string())).await;
-            return;
-        }
+    println!("got raw message {msg:?}");
+
+    let Ok(ocpp_message_type) = serde_json::from_str(msg.into_text().unwrap().as_str()) else {
+        handle_error(Message::Text("failed to parse call".to_string())).await;
+        return Err(());
     };
 
     parse_ocpp_message_type(&ocpp_message_type).await;
+    let message = match OcppCall::try_from(ocpp_message_type.clone()) {
+        Ok(message) => message,
+        Err(err) => {
+            tracing::error!("error {err:?}");
+            return Err(());
+        }
+    };
 
-    handle_response(
-        Message::Text(serde_json::to_string(&ocpp_message_type).unwrap()),
-    )
-    .await;
+    println!("got message {message:?}");
+    let response = match message.payload {
+        OcppPayload::Authorize(authorize_kind) => handle_authorize(authorize_kind).await,
+        OcppPayload::BootNotification(boot_notification_kind) => {
+            handle_bootnotification(boot_notification_kind).await
+        }
+        OcppPayload::Heartbeat(heartbeat_kind) => handle_heartbeat(heartbeat_kind).await,
+        OcppPayload::MeterValues(metervalues_kind) => handle_meter_values(metervalues_kind, charger_name).await,
+        /*OcppPayload::ChangeAvailability(_) => todo!(),
+        OcppPayload::DataTransfer(_) => todo!(),
+        OcppPayload::GetChargingProfile(_) => todo!(),
+        OcppPayload::GetLog(_) => todo!(),
+        OcppPayload::GetMonitoringReport(_) => todo!(),
+        OcppPayload::GetReport(_) => todo!(),
+        OcppPayload::GetVariables(_) => todo!(),
+        OcppPayload::LogStatusNotification(_) => todo!(),
+        OcppPayload::NotifyChargingLimit(_) => todo!(),
+        OcppPayload::NotifyCustomerInformation(_) => todo!(),
+        OcppPayload::NotifyDisplayMessages(_) => todo!(),
+        OcppPayload::NotifyEVChargingNeeds(_) => todo!(),
+        OcppPayload::NotifyEVChargingSchedule(_) => todo!(),
+        OcppPayload::NotifyEvent(_) => todo!(),
+        OcppPayload::NotifyMonitoringReport(_) => todo!(),
+        OcppPayload::NotifyReport(_) => todo!(),
+        OcppPayload::ReportChargingProfiles(_) => todo!(),*/
+        OcppPayload::RemoteStartTransaction(remote_start_transaction_kind) => {
+            handle_remote_start_transaction(remote_start_transaction_kind).await
+        }
+        OcppPayload::RemoteStopTransaction(remote_stop_transaction_kind) => {
+            handle_remote_stop_transaction(remote_stop_transaction_kind).await
+        }
+        /*OcppPayload::Reset(_) => todo!(),
+        OcppPayload::SecurityEventNotification(_) => todo!(),
+        OcppPayload::SendLocalList(_) => todo!(),
+        OcppPayload::SetChargingProfile(_) => todo!(),
+        OcppPayload::SetDisplayMessage(_) => todo!(),
+        OcppPayload::SetMonitoringBase(_) => todo!(),
+        OcppPayload::SetMonitoringLevel(_) => todo!(),
+        OcppPayload::SetNetworkProfile(_) => todo!(),
+        OcppPayload::SetVariableMonitoring(_) => todo!(),
+        OcppPayload::SetVariables(_) => todo!(), */
+        OcppPayload::StartTransaction(start_transaction_kind) => {
+            handle_start_transaction(start_transaction_kind, charger_name).await
+        }
+        OcppPayload::StopTransaction(stop_transaction_kind) => {
+            handle_stop_transaction(stop_transaction_kind).await
+        }
+        OcppPayload::StatusNotification(status_notification_kind) => {
+            handle_status_notification(status_notification_kind).await
+        }
+        /* OcppPayload::TransactionEvent(_) => todo!(),
+        OcppPayload::TriggerMessage(_) => todo!(),
+        OcppPayload::UnlockConnector(_) => todo!(),*/
+        _ => todo!(),
+    };
+
+    if let Some(response) = response {
+        let response = OcppCallResult {
+            message_type_id: 3,
+            message_id: message.message_id,
+            payload: response,
+        };
+        println!("response: {response:#?}");
+        return Ok(Some(Message::Text(
+            serde_json::to_string(&response).unwrap(),
+        )));
+    }
+    Ok(None)
 }
 
-async fn parse_ocpp_message_type(
-    ocpp_message: &OcppMessageType,
-) {
+async fn parse_ocpp_message_type(ocpp_message: &OcppMessageType) {
     match ocpp_message {
         // Call: [<MessageTypeId>, "<MessageId>", "<Action>", {<Payload>}]
-        OcppMessageType::Call(message_type_id, message_id, action, payload) => {
+        OcppMessageType::Call(message_type_id, _message_id, _action, _payload) => {
             // Validate message type id is 2 for Call
             if message_type_id.ne(&2) {
                 handle_error(Message::Text("Wrong message type id".into())).await;
             }
+            //handle_message(message_id, action /*, payload*/).await;
         }
 
         // CallResult: [<MessageTypeId>, "<MessageId>", {<Payload>}]
-        OcppMessageType::CallResult(message_type_id, message_id, payload) => {
+        OcppMessageType::CallResult(message_type_id, _message_id, _payload) => {
             // Validate message type id is 3 for CallResult
             if message_type_id.ne(&3) {
                 handle_error(Message::Text("Wrong message type id".into())).await;
@@ -55,10 +131,10 @@ async fn parse_ocpp_message_type(
         // CallError: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
         OcppMessageType::CallError(
             message_type_id,
-            message_id,
-            error_code,
-            error_description,
-            error_details,
+            _message_id,
+            _error_code,
+            _error_description,
+            _error_details,
         ) => {
             // Validate message type id is 4 for CallError
             if message_type_id.ne(&4) {
@@ -67,3 +143,7 @@ async fn parse_ocpp_message_type(
         }
     }
 }
+
+/*async fn handle_message(message_id: &str, action: &str /*, payload: Value*/) {
+let
+}*/
