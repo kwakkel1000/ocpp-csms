@@ -1,0 +1,23 @@
+{
+    "rust-analyzer.cachePriming.enable": false,
+    "rust-analyzer.check.workspace": false,
+    "rust-analyzer.check.overrideCommand": [
+        "cargo",
+        "clippy",
+        "--message-format=json",
+        "-p",
+        "ocpp-csms-server",
+        "--no-deps",
+        "--",
+        "-W",
+        "clippy::pedantic",
+        "-W",
+        "clippy::nursery",
+        "-W",
+        "clippy::todo",
+        "-W",
+        "clippy::unwrap_used",
+        "-W",
+        "clippy::panic"
+    ]
+}

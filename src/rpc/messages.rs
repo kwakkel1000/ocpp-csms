@@ -71,17 +71,6 @@ impl TryFrom<OcppMessageType> for OcppCall {
                         return Err("failed");
                     }
                 };
-                /*let payload = if let Ok(p) = payload {
-                    OcppPayload(p)
-                } else {
-                    return Err("failed");
-                };*/
-                /*let payload: OcppPayload =
-                if let Ok(p) = serde_json::from_value::<OcppPayload>(payload) {
-                    p
-                } else {
-                    return Err("failed");
-                };*/
                 Ok(Self {
                     message_type_id,
                     message_id,

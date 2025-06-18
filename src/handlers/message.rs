@@ -1,5 +1,4 @@
 use axum::extract::ws::Message;
-//use tracing::log::warn;
 
 use crate::authorization::authorize::handle_authorize;
 use crate::handlers::workflows::{
@@ -7,16 +6,9 @@ use crate::handlers::workflows::{
     handle_remote_stop_transaction, handle_start_transaction, handle_status_notification,
     handle_stop_transaction,
 };
-//use crate::authorization::authorize::handle_authorize;
-//use crate::handlers::response::handle_response;
 use crate::provisioning::bootnotification::handle_bootnotification;
 use crate::rpc::enums::OcppPayload;
-//use crate::rpc::enums::{OcppActionEnum, OcppPayload};
-//use crate::rpc::errors::RpcErrorCodes;
-//use crate::rpc::messages::{OcppCall, OcppCallError, OcppCallResult};
 use crate::rpc::messages::{OcppCall, OcppCallResult};
-//use crate::security::set_variables::handle_set_variables;
-//use crate::security::trigger_message::handle_trigger_message;
 use crate::{handlers::error::handle_error, rpc::messages::OcppMessageType};
 
 pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, ()> {
@@ -160,7 +152,3 @@ async fn parse_ocpp_message_type(ocpp_message: &OcppMessageType) {
         }
     }
 }
-
-/*async fn handle_message(message_id: &str, action: &str /*, payload: Value*/) {
-let
-}*/

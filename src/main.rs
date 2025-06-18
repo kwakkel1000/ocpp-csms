@@ -5,10 +5,7 @@
 )]
 
 use axum::{
-    extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
-        // State,
-    },
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
     routing::get,
     Router,
@@ -28,11 +25,9 @@ use std::sync::Arc;
 use axum::extract::Path;
 use axum::response::Response;
 use handlers::message::parse;
-//use state::State;
 use once_cell::sync::OnceCell;
 use std::net::SocketAddr;
 
-//use crate::rpc::messages::OcppMessageType;
 use tokio::sync::{mpsc, Mutex};
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -42,8 +37,6 @@ mod handlers;
 mod ocpp;
 mod provisioning;
 mod rpc;
-//mod security;
-//mod state;
 mod tests;
 
 static CONTEXT: OnceCell<Arc<Context>> = OnceCell::new();
