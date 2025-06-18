@@ -51,7 +51,7 @@ static CONTEXT: OnceCell<Arc<Context>> = OnceCell::new();
 type ChargerMspcType = OcppCall;
 #[derive(Clone)]
 struct Charger {
-    pub name: String,
+    pub _name: String,
     pub tx: mpsc::Sender<ChargerMspcType>,
     pub transaction_id: Option<i32>,
 }
@@ -59,7 +59,7 @@ struct Charger {
 impl Charger {
     pub const fn new(name: String, tx: mpsc::Sender<ChargerMspcType>) -> Self {
         Self {
-            name,
+            _name: name,
             tx,
             transaction_id: None,
         }

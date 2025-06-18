@@ -39,7 +39,7 @@ impl TryFrom<OcppMessageType> for OcppCall {
                         serde_json::from_value::<BootNotificationKind>(payload)
                             .map_err(|_| "failed")?,
                     ),
-                    OcppActionEnum::ClearCache => todo!(),
+                    // OcppActionEnum::ClearCache => todo!(),
                     OcppActionEnum::Heartbeat => OcppPayload::Heartbeat(
                         serde_json::from_value::<HeartbeatKind>(payload).map_err(|_| "failed")?,
                     ),
@@ -66,7 +66,10 @@ impl TryFrom<OcppMessageType> for OcppCall {
                         serde_json::from_value::<StatusNotificationKind>(payload)
                             .map_err(|_| "failed")?,
                     ),
-                    _ => todo!(),
+                    _ => {
+                        tracing::error!("rpc/messages.rs match action has no match");
+                        return Err("failed");
+                    }
                 };
                 /*let payload = if let Ok(p) = payload {
                     OcppPayload(p)

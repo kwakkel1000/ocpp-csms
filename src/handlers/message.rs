@@ -25,7 +25,14 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
     // serialize or die
     println!("got raw message {msg:?}");
 
-    let Ok(ocpp_message_type) = serde_json::from_str(msg.into_text().unwrap().as_str()) else {
+    let msg_text = match msg.into_text() {
+        Ok(msg) => msg,
+        Err(err) => {
+            tracing::error!("error {err:?}");
+            return Err(());
+        }
+    };
+    let Ok(ocpp_message_type) = serde_json::from_str(msg_text.as_str()) else {
         handle_error(Message::Text("failed to parse call".to_string())).await;
         return Err(());
     };
@@ -46,7 +53,9 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
             handle_bootnotification(boot_notification_kind).await
         }
         OcppPayload::Heartbeat(heartbeat_kind) => handle_heartbeat(heartbeat_kind).await,
-        OcppPayload::MeterValues(metervalues_kind) => handle_meter_values(metervalues_kind, charger_name).await,
+        OcppPayload::MeterValues(metervalues_kind) => {
+            handle_meter_values(metervalues_kind, charger_name).await
+        }
         /*OcppPayload::ChangeAvailability(_) => todo!(),
         OcppPayload::DataTransfer(_) => todo!(),
         OcppPayload::GetChargingProfile(_) => todo!(),
@@ -92,7 +101,10 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
         /* OcppPayload::TransactionEvent(_) => todo!(),
         OcppPayload::TriggerMessage(_) => todo!(),
         OcppPayload::UnlockConnector(_) => todo!(),*/
-        _ => todo!(),
+        _ => {
+            tracing::error!("handlers/messages.rs match message.payload has no match");
+            return Err(());
+        }
     };
 
     if let Some(response) = response {
@@ -102,9 +114,14 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
             payload: response,
         };
         println!("response: {response:#?}");
-        return Ok(Some(Message::Text(
-            serde_json::to_string(&response).unwrap(),
-        )));
+        let response_string = match serde_json::to_string(&response) {
+            Ok(response) => response,
+            Err(err) => {
+                tracing::error!("error {err:?}");
+                return Err(());
+            }
+        };
+        return Ok(Some(Message::Text(response_string)));
     }
     Ok(None)
 }
