@@ -7,8 +7,8 @@ use crate::authorization::authorize::handle_authorize;
 //     handle_stop_transaction,
 // };
 use crate::handlers::workflows::{
-    handle_heartbeat, handle_meter_values, handle_start_transaction, handle_status_notification,
-    handle_stop_transaction,
+    handle_get_configuration, handle_heartbeat, handle_meter_values, handle_start_transaction,
+    handle_status_notification, handle_stop_transaction,
 };
 use crate::provisioning::bootnotification::handle_bootnotification;
 use crate::rpc::enums::OcppPayload;
@@ -49,13 +49,17 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
             handle_bootnotification(boot_notification_kind).await
         }
         OcppPayload::Heartbeat(heartbeat_kind) => handle_heartbeat(heartbeat_kind).await,
-        OcppPayload::MeterValues(metervalues_kind) => {
-            handle_meter_values(metervalues_kind, charger_name).await
+        OcppPayload::MeterValues(meter_values_kind) => {
+            handle_meter_values(meter_values_kind, charger_name).await
         }
         /*OcppPayload::ChangeAvailability(_) => todo!(),
         OcppPayload::DataTransfer(_) => todo!(),
-        OcppPayload::GetChargingProfile(_) => todo!(),
-        OcppPayload::GetLog(_) => todo!(),
+        OcppPayload::GetChargingProfile(_) => todo!(), */
+        OcppPayload::GetConfiguration(get_configuration_kind) => {
+            handle_get_configuration(get_configuration_kind).await
+        }
+
+        /*OcppPayload::GetLog(_) => todo!(),
         OcppPayload::GetMonitoringReport(_) => todo!(),
         OcppPayload::GetReport(_) => todo!(),
         OcppPayload::GetVariables(_) => todo!(),

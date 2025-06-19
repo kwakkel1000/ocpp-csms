@@ -1,3 +1,5 @@
+use rust_ocpp::v1_6::messages::get_configuration::GetConfigurationRequest;
+use rust_ocpp::v1_6::messages::get_configuration::GetConfigurationResponse;
 use rust_ocpp::v1_6::messages::remote_stop_transaction::RemoteStopTransactionRequest;
 use rust_ocpp::v1_6::messages::remote_stop_transaction::RemoteStopTransactionResponse;
 use rust_ocpp::v1_6::messages::start_transaction::StartTransactionRequest;
@@ -103,6 +105,13 @@ pub enum FirmwareStatusNotificationKind {
 pub enum GetCompositeScheduleKind {
     Request(GetCompositeScheduleRequest),
     Response(GetCompositeScheduleResponse),
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Display)]
+#[serde(untagged)]
+pub enum GetConfigurationKind {
+    Request(GetConfigurationRequest),
+    Response(GetConfigurationResponse),
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Display)]
@@ -222,6 +231,7 @@ pub enum OcppActionEnum {
     ClearChargingProfile,
     FirmwareStatusNotification,
     GetCompositeSchedule,
+    GetConfiguration,
     GetLocalListVersion,
     Heartbeat,
     MeterValues,
@@ -257,6 +267,7 @@ impl FromStr for OcppActionEnum {
             "ClearChargingProfile" => Ok(Self::ClearChargingProfile),
             "FirmwareStatusNotification" => Ok(Self::FirmwareStatusNotification),
             "GetCompositeSchedule" => Ok(Self::GetCompositeSchedule),
+            "GetConfiguration" => Ok(Self::GetConfiguration),
             "GetLocalListVersion" => Ok(Self::GetLocalListVersion),
             "Heartbeat" => Ok(Self::Heartbeat),
             "MeterValues" => Ok(Self::MeterValues),
@@ -287,6 +298,7 @@ pub enum OcppPayload {
     ClearChargingProfile(ClearChargingProfileKind),
     FirmwareStatusNotification(FirmwareStatusNotificationKind),
     GetCompositeSchedule(GetCompositeScheduleKind),
+    GetConfiguration(GetConfigurationKind),
     GetLocalListVersion(GetLocalListVersionKind),
     Heartbeat(HeartbeatKind),
     MeterValues(MeterValuesKind),

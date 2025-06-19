@@ -1,8 +1,8 @@
 use crate::context::get_context;
 // use crate::handlers::response::handle_response;
 use crate::rpc::enums::{
-    HeartbeatKind, MeterValuesKind, OcppPayload, StartTransactionKind, StatusNotificationKind,
-    StopTransactionKind,
+    GetConfigurationKind, HeartbeatKind, MeterValuesKind, OcppPayload, StartTransactionKind,
+    StatusNotificationKind, StopTransactionKind,
 };
 // use crate::rpc::enums::{
 //     HeartbeatKind, MeterValuesKind, OcppPayload, RemoteStartTransactionKind,
@@ -83,6 +83,16 @@ use rust_ocpp::v1_6::types::{AuthorizationStatus, IdTagInfo};
 //         }
 //     }
 // }
+#[allow(unused)]
+pub async fn handle_get_configuration(request: GetConfigurationKind) -> Option<OcppPayload> {
+    match request {
+        GetConfigurationKind::Request(_req) => None,
+        GetConfigurationKind::Response(req) => {
+            println!("get configuration response: {req:#?}");
+            None
+        }
+    }
+}
 //
 // #[allow(unused)]
 // pub async fn handle_get_composite_schedule(request: GetCompositeScheduleKind) {

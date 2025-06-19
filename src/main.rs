@@ -57,4 +57,3 @@ async fn main() {
     };
 }
 
-async fn get_status() {}
