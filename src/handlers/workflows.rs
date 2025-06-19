@@ -1,9 +1,13 @@
-use crate::get_context;
+use crate::context::get_context;
 // use crate::handlers::response::handle_response;
 use crate::rpc::enums::{
-    HeartbeatKind, MeterValuesKind, OcppPayload, RemoteStartTransactionKind,
-    RemoteStopTransactionKind, StartTransactionKind, StatusNotificationKind, StopTransactionKind,
+    HeartbeatKind, MeterValuesKind, OcppPayload, StartTransactionKind, StatusNotificationKind,
+    StopTransactionKind,
 };
+// use crate::rpc::enums::{
+//     HeartbeatKind, MeterValuesKind, OcppPayload, RemoteStartTransactionKind,
+//     RemoteStopTransactionKind, StartTransactionKind, StatusNotificationKind, StopTransactionKind,
+// };
 // use crate::rpc::enums::{
 //     CancelReservationKind, ChangeAvailabilityKind, ClearCacheKind, ClearChargingProfileKind,
 //     FirmwareStatusNotificationKind, GetCompositeScheduleKind, GetLocalListVersionKind,
@@ -145,29 +149,29 @@ pub async fn handle_meter_values(
     }
 }
 
-pub async fn handle_remote_start_transaction(
-    request: RemoteStartTransactionKind,
-) -> Option<OcppPayload> {
-    match request {
-        RemoteStartTransactionKind::Request(_req) => None,
-        RemoteStartTransactionKind::Response(req) => {
-            println!("remote start transaction response: {req:#?}");
-            None
-        }
-    }
-}
-
-pub async fn handle_remote_stop_transaction(
-    request: RemoteStopTransactionKind,
-) -> Option<OcppPayload> {
-    match request {
-        RemoteStopTransactionKind::Request(_req) => None,
-        RemoteStopTransactionKind::Response(req) => {
-            println!("remote stop transaction response: {req:#?}");
-            None
-        }
-    }
-}
+// pub async fn handle_remote_start_transaction(
+//     request: RemoteStartTransactionKind,
+// ) -> Option<OcppPayload> {
+//     match request {
+//         RemoteStartTransactionKind::Request(_req) => None,
+//         RemoteStartTransactionKind::Response(req) => {
+//             println!("remote start transaction response: {req:#?}");
+//             None
+//         }
+//     }
+// }
+//
+// pub async fn handle_remote_stop_transaction(
+//     request: RemoteStopTransactionKind,
+// ) -> Option<OcppPayload> {
+//     match request {
+//         RemoteStopTransactionKind::Request(_req) => None,
+//         RemoteStopTransactionKind::Response(req) => {
+//             println!("remote stop transaction response: {req:#?}");
+//             None
+//         }
+//     }
+// }
 
 // #[allow(unused)]
 // pub async fn handle_reserve_now(request: ReserveNowKind) {
