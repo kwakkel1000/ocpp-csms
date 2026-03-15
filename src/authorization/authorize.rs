@@ -10,7 +10,7 @@ pub async fn handle_authorize(request: AuthorizeKind) -> Option<OcppPayload> {
     // check if its a request or response
     match request {
         AuthorizeKind::Request(req) => {
-            println!("{req:#?}");
+            tracing::info!("{req:#?}");
             let response = AuthorizeResponse {
                 id_tag_info: IdTagInfo {
                     expiry_date: None,

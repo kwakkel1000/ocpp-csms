@@ -10,7 +10,7 @@ pub async fn handle_bootnotification(request: BootNotificationKind) -> Option<Oc
     // check if its a request or response
     match request {
         BootNotificationKind::Request(req) => {
-            println!("{req:#?}");
+            tracing::info!("{req:#?}");
             let now: DateTime<Utc> = Utc::now();
             let response = BootNotificationResponse {
                 current_time: now,

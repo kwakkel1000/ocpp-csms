@@ -81,7 +81,7 @@ pub async fn handle_socket(
     let inner_tx_clone = inner_tx.clone();
     let mut send_task = tokio::spawn(async move {
         while let Some(request) = rx.recv().await {
-            println!("request: {request:#?}");
+            tracing::debug!("request: {request:#?}");
             let stringified_request = match serde_json::to_string(&request) {
                 Ok(request) => request,
                 Err(err) => {
@@ -99,7 +99,7 @@ pub async fn handle_socket(
     });
     let mut mpsc_recv_task = tokio::spawn(async move {
         while let Some(text) = inner_rx.recv().await {
-            println!("sending: {text:#?}");
+            tracing::debug!("sending: {text:#?}");
             if sender.send(text).await.is_err() {
                 break;
             }

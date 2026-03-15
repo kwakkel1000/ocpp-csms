@@ -29,7 +29,7 @@ pub async fn parse(
     // Skip any non-Text messages...
 
     // serialize or die
-    println!("got raw message {msg:?}");
+    tracing::debug!("got raw message {msg:?}");
 
     let msg_text = match msg.into_text() {
         Ok(msg) => msg,
@@ -52,7 +52,7 @@ pub async fn parse(
         }
     };
 
-    println!("got message {message:?}");
+    tracing::debug!("got message {message:?}");
     let response = match message.payload {
         OcppPayload::Authorize(authorize_kind) => handle_authorize(authorize_kind).await,
         OcppPayload::BootNotification(boot_notification_kind) => {
@@ -141,7 +141,7 @@ pub async fn parse(
             message_id: message.message_id,
             payload: response,
         };
-        println!("response: {response:#?}");
+        tracing::debug!("response: {response:#?}");
         let response_string = match serde_json::to_string(&response) {
             Ok(response) => response,
             Err(err) => {

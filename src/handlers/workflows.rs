@@ -93,7 +93,7 @@ pub async fn handle_get_configuration(request: GetConfigurationKind) -> Option<O
     match request {
         GetConfigurationKind::Request(_req) => None,
         GetConfigurationKind::Response(req) => {
-            println!("get configuration response: {req:#?}");
+            tracing::debug!("get configuration response: {req:#?}");
             None
         }
     }
@@ -126,7 +126,7 @@ pub async fn handle_get_configuration(request: GetConfigurationKind) -> Option<O
 pub async fn handle_heartbeat(request: HeartbeatKind) -> Option<OcppPayload> {
     match request {
         HeartbeatKind::Request(req) => {
-            println!("heartbeat request: {req:#?}");
+            tracing::debug!("heartbeat request: {req:#?}");
             let now: DateTime<Utc> = Utc::now();
             let response = HeartbeatResponse { current_time: now };
             Some(OcppPayload::Heartbeat(HeartbeatKind::Response(response)))
@@ -146,7 +146,7 @@ pub async fn handle_meter_values(
 ) -> Option<OcppPayload> {
     match request {
         MeterValuesKind::Request(req) => {
-            println!("metering values request: {req:#?}");
+            tracing::debug!("metering values request: {req:#?}");
             let mut context_lock = context.lock().await;
             if let Some(charger) = context_lock.get_charger_mut(charger_name) {
                 let connector_id = req.connector_id;
@@ -253,7 +253,7 @@ pub async fn handle_meter_values(
 //     match request {
 //         RemoteStartTransactionKind::Request(_req) => None,
 //         RemoteStartTransactionKind::Response(req) => {
-//             println!("remote start transaction response: {req:#?}");
+//             tracing::debug!("remote start transaction response: {req:#?}");
 //             None
 //         }
 //     }
@@ -265,7 +265,7 @@ pub async fn handle_meter_values(
 //     match request {
 //         RemoteStopTransactionKind::Request(_req) => None,
 //         RemoteStopTransactionKind::Response(req) => {
-//             println!("remote stop transaction response: {req:#?}");
+//             tracing::debug!("remote stop transaction response: {req:#?}");
 //             None
 //         }
 //     }
@@ -327,7 +327,7 @@ pub async fn handle_start_transaction(
 ) -> Option<OcppPayload> {
     match request {
         StartTransactionKind::Request(req) => {
-            println!("start transaction request: {req:#?}");
+            tracing::info!("start transaction request: {req:#?}");
             context
                 .lock()
                 .await
@@ -347,7 +347,7 @@ pub async fn handle_start_transaction(
             ))
         }
         StartTransactionKind::Response(req) => {
-            println!("remote start transaction response: {req:#?}");
+            tracing::info!("remote start transaction response: {req:#?}");
             None
         }
     }
@@ -356,7 +356,7 @@ pub async fn handle_start_transaction(
 pub async fn handle_stop_transaction(request: StopTransactionKind) -> Option<OcppPayload> {
     match request {
         StopTransactionKind::Request(req) => {
-            println!("stop transaction request: {req:#?}");
+            tracing::info!("stop transaction request: {req:#?}");
             let status = AuthorizationStatus::Accepted;
             let id_tag_info = Some(IdTagInfo {
                 expiry_date: None,
@@ -369,7 +369,7 @@ pub async fn handle_stop_transaction(request: StopTransactionKind) -> Option<Ocp
             )))
         }
         StopTransactionKind::Response(req) => {
-            println!("remote stop transaction response: {req:#?}");
+            tracing::info!("remote stop transaction response: {req:#?}");
             None
         }
     }
@@ -382,7 +382,7 @@ pub async fn handle_status_notification(
 ) -> Option<OcppPayload> {
     match request {
         StatusNotificationKind::Request(req) => {
-            println!("metering values request: {req:#?}");
+            tracing::debug!("metering values request: {req:#?}");
             let mut context_lock = context.lock().await;
             if let Some(charger) = context_lock.get_charger_mut(charger_name) {
                 charger.add_connector(req.connector_id);

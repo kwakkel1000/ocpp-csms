@@ -11,9 +11,9 @@ use super::enums::{
 
 type OcppMessageTypeId = usize;
 type OcppMessageId = String;
-type OcppErrorCode = String;
-type OcppErrorDescription = String;
-type OcppErrorDetails = Value;
+// type OcppErrorCode = String;
+// type OcppErrorDescription = String;
+// type OcppErrorDetails = Value;
 
 /// Call: [<MessageTypeId>, "<MessageId>", "<Action>", {<Payload>}]
 #[derive(serde::Deserialize, Debug, Clone, PartialEq)]
@@ -139,55 +139,55 @@ impl serde::Serialize for OcppCallResult {
     }
 }
 
-#[derive(serde::Deserialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-/// `CallError`: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
-pub struct OcppCallError {
-    pub message_type_id: OcppMessageTypeId,
-    pub message_id: OcppMessageId,
-    pub error_code: OcppErrorCode,
-    pub error_description: OcppErrorDescription,
-    pub error_details: OcppErrorDetails,
-}
-
-impl TryFrom<OcppMessageType> for OcppCallError {
-    type Error = &'static str;
-
-    fn try_from(msg: OcppMessageType) -> Result<Self, Self::Error> {
-        match msg {
-            OcppMessageType::CallError(
-                message_type_id,
-                message_id,
-                error_code,
-                error_description,
-                error_details,
-            ) => Ok(Self {
-                message_type_id,
-                message_id,
-                error_code,
-                error_description,
-                error_details,
-            }),
-            _ => Err("failed"),
-        }
-    }
-}
-
-impl serde::Serialize for OcppCallError {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        (
-            &self.message_type_id,
-            &self.message_id,
-            &self.error_code,
-            &self.error_description,
-            &self.error_details,
-        )
-            .serialize(serializer)
-    }
-}
+// #[derive(serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+// #[serde(rename_all = "camelCase")]
+// /// `CallError`: [<MessageTypeId>, "<MessageId>", "<errorCode>", "<errorDescription>", {<errorDetails>}]
+// pub struct OcppCallError {
+//     pub message_type_id: OcppMessageTypeId,
+//     pub message_id: OcppMessageId,
+//     pub error_code: OcppErrorCode,
+//     pub error_description: OcppErrorDescription,
+//     pub error_details: OcppErrorDetails,
+// }
+//
+// impl TryFrom<OcppMessageType> for OcppCallError {
+//     type Error = &'static str;
+//
+//     fn try_from(msg: OcppMessageType) -> Result<Self, Self::Error> {
+//         match msg {
+//             OcppMessageType::CallError(
+//                 message_type_id,
+//                 message_id,
+//                 error_code,
+//                 error_description,
+//                 error_details,
+//             ) => Ok(Self {
+//                 message_type_id,
+//                 message_id,
+//                 error_code,
+//                 error_description,
+//                 error_details,
+//             }),
+//             _ => Err("failed"),
+//         }
+//     }
+// }
+//
+// impl serde::Serialize for OcppCallError {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         (
+//             &self.message_type_id,
+//             &self.message_id,
+//             &self.error_code,
+//             &self.error_description,
+//             &self.error_details,
+//         )
+//             .serialize(serializer)
+//     }
+// }
 
 /// A Payload consist of either a Call, a `CallResult` or a `CallError`
 ///
