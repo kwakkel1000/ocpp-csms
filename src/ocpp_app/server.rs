@@ -1,32 +1,45 @@
+use std::sync::Arc;
+
+use axum::extract::State;
 use axum::extract::ws::Message;
 use axum::extract::ws::WebSocket;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use futures_util::SinkExt;
 use futures_util::StreamExt;
+use tokio::sync::Mutex;
 use tokio::sync::mpsc;
 
 use crate::charger::ChargerMspcType;
-use crate::context::get_context;
+use crate::context::Context;
 use crate::handlers::message::parse;
 
 pub async fn handle_socket(
     socket: WebSocket,
     name: String,
     mut rx: mpsc::Receiver<ChargerMspcType>,
+    State(context): State<Arc<Mutex<Context>>>,
 ) {
+    tracing::debug!("handle socket name: {name} socket: {socket:?}");
     // By splitting, we can send and receive at the same time.
     let (mut sender, mut receiver) = socket.split();
     let (inner_tx, mut inner_rx) = mpsc::channel(1);
     let inner_tx_clone = inner_tx.clone();
     let name_clone = name.clone();
+    let context_clone = context.clone();
     let mut recv_task = tokio::spawn(async move {
         loop {
             if let Some(msg) = receiver.next().await {
                 if let Ok(msg) = msg {
                     match &msg {
                         Message::Text(_msg) => {
-                            let response = match parse(msg, &name_clone).await {
+                            let response = match parse(
+                                msg,
+                                &name_clone,
+                                axum::extract::State(context_clone.clone()),
+                            )
+                            .await
+                            {
                                 Ok(response) => response,
                                 Err(err) => {
                                     tracing::error!("parse error {err:?}");
@@ -76,7 +89,7 @@ pub async fn handle_socket(
                     break;
                 }
             };
-            let request = Message::Text(stringified_request);
+            let request = Message::Text(stringified_request.into());
             // In any websocket error, break loop.
             if inner_tx_clone.send(request).await.is_err() {
                 // if sender.send(request).await.is_err() {
@@ -97,12 +110,12 @@ pub async fn handle_socket(
         _ = &mut recv_task => send_task.abort(),
         _ = &mut mpsc_recv_task => send_task.abort(),
     };
-    get_context().del_charger(&name).await;
+    context.lock().await.del_charger(&name);
 }
 
 pub async fn handle_error(mut socket: WebSocket) {
     if socket
-        .send(Message::Text(String::from("Not a valid station")))
+        .send(Message::Text(String::from("Not a valid station").into()))
         .await
         .is_err()
     {

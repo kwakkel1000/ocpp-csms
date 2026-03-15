@@ -1,15 +1,28 @@
+use std::sync::Arc;
+
 use crate::{
-    context::get_context,
+    context::Context,
     rpc::{self, enums::RemoteStartTransactionKind, messages::OcppCall},
 };
+use axum::{extract::State, Json};
 use rust_ocpp::v1_6::messages::remote_start_transaction::RemoteStartTransactionRequest;
+use serde::Deserialize;
+use tokio::sync::Mutex;
 
-pub async fn post_start() {
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct StartInput {
+    connector_id: Option<u32>,
+}
+
+pub async fn post_start(State(context): State<Arc<Mutex<Context>>>, Json(input): Json<StartInput>) {
+    tracing::debug!("post start {input:#?}");
     let charger_name = "wallbox";
-    if let Some(charger) = get_context().get_charger(charger_name).await {
+    let context_lock = context.lock().await;
+    if let Some(charger) = context_lock.get_charger(charger_name) {
         let request = rpc::enums::OcppPayload::RemoteStartTransaction(
             RemoteStartTransactionKind::Request(RemoteStartTransactionRequest {
-                connector_id: None,
+                connector_id: input.connector_id,
                 id_tag: "random".to_string(),
                 charging_profile: None,
             }),

@@ -1,9 +1,13 @@
-use crate::context::get_context;
+use std::sync::Arc;
+
+use crate::connector::Connector;
+use crate::context::Context;
 // use crate::handlers::response::handle_response;
 use crate::rpc::enums::{
     GetConfigurationKind, HeartbeatKind, MeterValuesKind, OcppPayload, StartTransactionKind,
     StatusNotificationKind, StopTransactionKind,
 };
+use axum::extract::State;
 // use crate::rpc::enums::{
 //     HeartbeatKind, MeterValuesKind, OcppPayload, RemoteStartTransactionKind,
 //     RemoteStopTransactionKind, StartTransactionKind, StatusNotificationKind, StopTransactionKind,
@@ -22,7 +26,8 @@ use rust_ocpp::v1_6::messages::start_transaction::StartTransactionResponse;
 use rust_ocpp::v1_6::messages::status_notification::StatusNotificationResponse;
 use rust_ocpp::v1_6::messages::stop_transaction::StopTransactionResponse;
 use rust_ocpp::v1_6::messages::{heart_beat::HeartbeatResponse, meter_values::MeterValuesResponse};
-use rust_ocpp::v1_6::types::{AuthorizationStatus, IdTagInfo};
+use rust_ocpp::v1_6::types::{AuthorizationStatus, IdTagInfo, MeterValue, SampledValue};
+use tokio::sync::Mutex;
 
 // #[allow(unused)]
 // pub async fn handle_cancel_reservation(request: CancelReservationKind) {
@@ -137,14 +142,97 @@ pub async fn handle_heartbeat(request: HeartbeatKind) -> Option<OcppPayload> {
 pub async fn handle_meter_values(
     request: MeterValuesKind,
     charger_name: &str,
+    State(context): State<Arc<Mutex<Context>>>,
 ) -> Option<OcppPayload> {
     match request {
         MeterValuesKind::Request(req) => {
             println!("metering values request: {req:#?}");
+            let mut context_lock = context.lock().await;
+            if let Some(charger) = context_lock.get_charger_mut(charger_name) {
+                let connector_id = req.connector_id;
+                // let transaction_id = req.transaction_id;
+                for meter_value in req.meter_value {
+                    let MeterValue {
+                        timestamp: _,
+                        sampled_value,
+                    } = meter_value;
+                    for sampled_value in sampled_value {
+                        let SampledValue {
+                            value,
+                            context: _,
+                            format: _,
+                            measurand,
+                            phase: _,
+                            location: _,
+                            unit: _,
+                        } = sampled_value;
+                        if let Some(measurand) = measurand {
+                            match measurand {
+                                // rust_ocpp::v1_6::types::Measurand::CurrentExport => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::CurrentImport => todo!(),
+                                rust_ocpp::v1_6::types::Measurand::CurrentOffered => {
+                                    if let Ok(value) = value.parse::<f64>() {
+                                        if let Some(Connector::Real(connector)) =
+                                            charger.get_connector_mut(connector_id)
+                                        {
+                                            connector.set_current_offered(value);
+                                        }
+                                    }
+                                }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyActiveExportRegister => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyActiveImportRegister => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyReactiveExportRegister => {
+                                //     todo!()
+                                // }
+                                rust_ocpp::v1_6::types::Measurand::EnergyReactiveImportRegister => {
+                                    if let Ok(value) = value.parse::<f64>() {
+                                        if let Some(connector) =
+                                            charger.get_connector_mut(connector_id)
+                                        {
+                                            connector.set_lifetime_energy_usage(value);
+                                        }
+                                    }
+                                }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyActiveExportInterval => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyActiveImportInterval => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyReactiveExportInterval => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::EnergyReactiveImportInterval => {
+                                //     todo!()
+                                // }
+                                // rust_ocpp::v1_6::types::Measurand::Frequency => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerActiveExport => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerActiveImport => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerFactor => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerOffered => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerReactiveExport => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::PowerReactiveImport => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::Rpm => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::SoC => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::Temperature => todo!(),
+                                // rust_ocpp::v1_6::types::Measurand::Voltage => todo!(),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            }
+            drop(context_lock);
             if let Some(transaction_id) = req.transaction_id {
-                get_context()
-                    .start_transaction(charger_name, transaction_id)
-                    .await;
+                context.lock().await.start_transaction(
+                    charger_name,
+                    req.connector_id,
+                    transaction_id,
+                );
             }
             let response = MeterValuesResponse {};
             Some(OcppPayload::MeterValues(MeterValuesKind::Response(
@@ -234,14 +322,16 @@ pub async fn handle_meter_values(
 pub async fn handle_start_transaction(
     request: StartTransactionKind,
     charger_name: &str,
+    transaction_id: i32,
+    State(context): State<Arc<Mutex<Context>>>,
 ) -> Option<OcppPayload> {
     match request {
         StartTransactionKind::Request(req) => {
             println!("start transaction request: {req:#?}");
-            let transaction_id = 99;
-            get_context()
-                .start_transaction(charger_name, transaction_id)
-                .await;
+            context
+                .lock()
+                .await
+                .start_transaction(charger_name, req.connector_id, transaction_id);
             let status = AuthorizationStatus::Accepted;
             let id_tag_info = IdTagInfo {
                 expiry_date: None,
@@ -285,10 +375,19 @@ pub async fn handle_stop_transaction(request: StopTransactionKind) -> Option<Ocp
     }
 }
 
-pub async fn handle_status_notification(request: StatusNotificationKind) -> Option<OcppPayload> {
+pub async fn handle_status_notification(
+    request: StatusNotificationKind,
+    charger_name: &str,
+    State(context): State<Arc<Mutex<Context>>>,
+) -> Option<OcppPayload> {
     match request {
         StatusNotificationKind::Request(req) => {
             println!("metering values request: {req:#?}");
+            let mut context_lock = context.lock().await;
+            if let Some(charger) = context_lock.get_charger_mut(charger_name) {
+                charger.add_connector(req.connector_id);
+            }
+            drop(context_lock);
             let response = StatusNotificationResponse {};
             Some(OcppPayload::StatusNotification(
                 StatusNotificationKind::Response(response),

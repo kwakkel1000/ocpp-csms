@@ -4,13 +4,15 @@
     clippy::redundant_pub_crate
 )]
 
-use context::init;
-use std::net::SocketAddr;
+use std::sync::Arc;
 
+use context::Context;
+use tokio::sync::Mutex;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod authorization;
 mod charger;
+mod connector;
 mod context;
 mod control_app;
 mod handlers;
@@ -23,7 +25,6 @@ mod tests;
 #[tokio::main]
 async fn main() {
     //let _state = State {};
-    init();
     tracing_subscriber::registry()
         .with(tracing_subscriber::EnvFilter::new(
             std::env::var("RUST_LOG").unwrap_or_else(|_| "csms=debug,tower_http=debug".into()),
@@ -31,18 +32,24 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let context = Arc::new(Mutex::new(Context::new()));
     // build our ocpp app with some routes
-    let ocpp_app = ocpp_app::init_router();
+    let ocpp_app = ocpp_app::init_router(context.clone());
     // build our control app with some routes
-    let control_app = control_app::init_router();
+    let control_app = control_app::init_router(context);
 
-    // run it with hyper
-    let ocpp_addr = SocketAddr::from(([0, 0, 0, 0], 9000));
-    let control_addr = SocketAddr::from(([0, 0, 0, 0], 8000));
-    tracing::debug!("ocpp listening on {}", ocpp_addr);
-    tracing::debug!("control listening on {}", control_addr);
-    let ocpp_task = axum::Server::bind(&ocpp_addr).serve(ocpp_app.into_make_service());
-    let control_task = axum::Server::bind(&control_addr).serve(control_app.into_make_service());
+    let ocpp_addr = "0.0.0.0:9000";
+    let control_addr = "0.0.0.0:8000";
+
+    tracing::debug!("ocpp listening on {ocpp_addr}");
+    tracing::debug!("control listening on {control_addr}");
+
+    let ocpp_listener = tokio::net::TcpListener::bind(ocpp_addr).await.unwrap();
+    let controler_listener = tokio::net::TcpListener::bind(control_addr).await.unwrap();
+    let ocpp_task = axum::serve(ocpp_listener, ocpp_app);
+    let control_task = axum::serve(controler_listener, control_app);
+    // let ocpp_task = axum::bind(&ocpp_addr).serve(ocpp_app.into_make_service());
+    // let control_task = axum::Server::bind(&control_addr).serve(control_app.into_make_service());
     tokio::select! {
         res = ocpp_task => {
             if let Err(err) = res {
@@ -56,4 +63,3 @@ async fn main() {
         }
     };
 }
-

@@ -1,6 +1,12 @@
+use std::sync::Arc;
+
+use axum::extract::State;
 use axum::extract::ws::Message;
+use rand::RngExt;
+use tokio::sync::Mutex;
 
 use crate::authorization::authorize::handle_authorize;
+use crate::context::Context;
 // use crate::handlers::workflows::{
 //     handle_heartbeat, handle_meter_values, handle_remote_start_transaction,
 //     handle_remote_stop_transaction, handle_start_transaction, handle_status_notification,
@@ -15,7 +21,11 @@ use crate::rpc::enums::OcppPayload;
 use crate::rpc::messages::{OcppCall, OcppCallResult};
 use crate::{handlers::error::handle_error, rpc::messages::OcppMessageType};
 
-pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, ()> {
+pub async fn parse(
+    msg: Message,
+    charger_name: &str,
+    State(context): State<Arc<Mutex<Context>>>,
+) -> Result<Option<Message>, ()> {
     // Skip any non-Text messages...
 
     // serialize or die
@@ -29,7 +39,7 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
         }
     };
     let Ok(ocpp_message_type) = serde_json::from_str(msg_text.as_str()) else {
-        handle_error(Message::Text("failed to parse call".to_string())).await;
+        handle_error(Message::Text("failed to parse call".to_string().into())).await;
         return Err(());
     };
 
@@ -50,7 +60,12 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
         }
         OcppPayload::Heartbeat(heartbeat_kind) => handle_heartbeat(heartbeat_kind).await,
         OcppPayload::MeterValues(meter_values_kind) => {
-            handle_meter_values(meter_values_kind, charger_name).await
+            handle_meter_values(
+                meter_values_kind,
+                charger_name,
+                axum::extract::State(context),
+            )
+            .await
         }
         /*OcppPayload::ChangeAvailability(_) => todo!(),
         OcppPayload::DataTransfer(_) => todo!(),
@@ -90,13 +105,26 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
         OcppPayload::SetVariableMonitoring(_) => todo!(),
         OcppPayload::SetVariables(_) => todo!(), */
         OcppPayload::StartTransaction(start_transaction_kind) => {
-            handle_start_transaction(start_transaction_kind, charger_name).await
+            let transaction_id: u16 = rand::rng().random();
+            let transaction_id: i32 = i32::from(transaction_id);
+            handle_start_transaction(
+                start_transaction_kind,
+                charger_name,
+                transaction_id,
+                axum::extract::State(context),
+            )
+            .await
         }
         OcppPayload::StopTransaction(stop_transaction_kind) => {
             handle_stop_transaction(stop_transaction_kind).await
         }
         OcppPayload::StatusNotification(status_notification_kind) => {
-            handle_status_notification(status_notification_kind).await
+            handle_status_notification(
+                status_notification_kind,
+                charger_name,
+                axum::extract::State(context),
+            )
+            .await
         }
         /* OcppPayload::TransactionEvent(_) => todo!(),
         OcppPayload::TriggerMessage(_) => todo!(),
@@ -121,7 +149,7 @@ pub async fn parse(msg: Message, charger_name: &str) -> Result<Option<Message>, 
                 return Err(());
             }
         };
-        return Ok(Some(Message::Text(response_string)));
+        return Ok(Some(Message::Text(response_string.into())));
     }
     Ok(None)
 }

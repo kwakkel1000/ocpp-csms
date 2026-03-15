@@ -1,13 +1,30 @@
+use std::sync::Arc;
+
 use crate::{
-    context::get_context,
+    context::Context,
     rpc::{self, enums::RemoteStopTransactionKind, messages::OcppCall},
 };
+use axum::{extract::State, Json};
 use rust_ocpp::v1_6::messages::remote_stop_transaction::RemoteStopTransactionRequest;
+use serde::Deserialize;
+use tokio::sync::Mutex;
 
-pub async fn post_stop() {
+#[derive(Deserialize, Debug)]
+#[allow(dead_code)]
+pub struct StopInput {
+    connector_id: u32,
+}
+
+pub async fn post_stop(State(context): State<Arc<Mutex<Context>>>, Json(input): Json<StopInput>) {
+    tracing::debug!("post stop {input:#?}");
     let charger_name = "wallbox";
-    if let Some(charger) = get_context().get_charger(charger_name).await {
-        if let Some(transaction_id) = get_context().stop_transaction(charger_name).await {
+    let transaction_id = context
+        .lock()
+        .await
+        .stop_transaction(input.connector_id, charger_name);
+    let context_lock = context.lock().await;
+    if let Some(charger) = context_lock.get_charger(charger_name) {
+        if let Some(transaction_id) = transaction_id {
             let request = rpc::enums::OcppPayload::RemoteStopTransaction(
                 RemoteStopTransactionKind::Request(RemoteStopTransactionRequest { transaction_id }),
             );
@@ -21,4 +38,5 @@ pub async fn post_stop() {
             let _ = charger.tx.send(request).await;
         }
     }
+    drop(context_lock);
 }
