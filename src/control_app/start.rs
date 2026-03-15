@@ -4,7 +4,7 @@ use crate::{
     context::Context,
     rpc::{self, enums::RemoteStartTransactionKind, messages::OcppCall},
 };
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use rust_ocpp::v1_6::messages::remote_start_transaction::RemoteStartTransactionRequest;
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -16,7 +16,7 @@ pub struct StartInput {
 }
 
 pub async fn post_start(State(context): State<Arc<Mutex<Context>>>, Json(input): Json<StartInput>) {
-    tracing::debug!("post start {input:#?}");
+    tracing::info!("post start {input:#?}");
     let charger_name = "wallbox";
     let context_lock = context.lock().await;
     if let Some(charger) = context_lock.get_charger(charger_name) {

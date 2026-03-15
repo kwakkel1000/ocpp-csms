@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use charge_profile::post_profile;
 use start::post_start;
 use status::get_status;
@@ -15,7 +15,7 @@ pub mod status;
 pub mod stop;
 
 pub fn init_router(context: Arc<Mutex<Context>>) -> Router {
-    tracing::debug!("init router");
+    tracing::info!("init router");
     Router::new()
         .route("/start", get(get_404).post(post_start))
         .route("/stop", get(get_404).post(post_stop))

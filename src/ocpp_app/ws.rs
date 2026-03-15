@@ -4,7 +4,7 @@ use axum::{
     extract::{Path, State, WebSocketUpgrade},
     response::IntoResponse,
 };
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::{Mutex, mpsc};
 
 use crate::{
     context::Context,

@@ -4,7 +4,7 @@ use crate::{
     context::Context,
     rpc::{self, enums::RemoteStopTransactionKind, messages::OcppCall},
 };
-use axum::{extract::State, Json};
+use axum::{Json, extract::State};
 use rust_ocpp::v1_6::messages::remote_stop_transaction::RemoteStopTransactionRequest;
 use serde::Deserialize;
 use tokio::sync::Mutex;
@@ -16,7 +16,7 @@ pub struct StopInput {
 }
 
 pub async fn post_stop(State(context): State<Arc<Mutex<Context>>>, Json(input): Json<StopInput>) {
-    tracing::debug!("post stop {input:#?}");
+    tracing::info!("post stop {input:#?}");
     let charger_name = "wallbox";
     let transaction_id = context
         .lock()

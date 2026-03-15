@@ -20,7 +20,7 @@ pub async fn handle_socket(
     mut rx: mpsc::Receiver<ChargerMspcType>,
     State(context): State<Arc<Mutex<Context>>>,
 ) {
-    tracing::debug!("handle socket name: {name} socket: {socket:?}");
+    tracing::info!("handle socket name: {name} socket: {socket:?}");
     // By splitting, we can send and receive at the same time.
     let (mut sender, mut receiver) = socket.split();
     let (inner_tx, mut inner_rx) = mpsc::channel(1);
@@ -123,7 +123,7 @@ pub async fn handle_error(mut socket: WebSocket) {
         return;
     }
     // close socket
-    tracing::info!("closing socket due to invalid station");
+    tracing::warn!("closing socket due to invalid station");
     let _ = socket.close().await;
 }
 

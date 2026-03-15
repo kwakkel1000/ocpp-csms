@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{routing::get, Router};
+use axum::{Router, routing::get};
 use tokio::sync::Mutex;
 use tower_http::trace::{DefaultMakeSpan, TraceLayer};
 use ws::ws_connect;
@@ -11,7 +11,7 @@ pub mod server;
 pub mod ws;
 
 pub fn init_router(context: Arc<Mutex<Context>>) -> Router {
-    tracing::debug!("init router");
+    tracing::info!("init router");
     Router::new()
         .route("/{station_id}", get(ws_connect))
         .layer(
